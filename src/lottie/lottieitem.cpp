@@ -1279,6 +1279,10 @@ void LOTPolystarItem::updatePath(VPath &path, int frameNo)
     path.reset();
     VMatrix m;
 
+    // Point count comes straight from JSON: negative, NaN or huge values
+    // overflow size_t in VPathData::reserve() and abort in -fno-exceptions.
+    if (!(points >= 1.0f && points <= 1000.0f)) return;
+
     if (mData->mType == LOTPolystarData::PolyType::Star) {
         path.addPolystar(points, innerRadius, outerRadius, innerRoundness,
                          outerRoundness, 0.0, 0.0, 0.0, mData->direction());
