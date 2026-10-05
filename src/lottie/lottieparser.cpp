@@ -54,6 +54,7 @@
 // the parse.
 
 #include <array>
+#include <cmath>
 #include <sstream>
 
 #include "lottiemodel.h"
@@ -1514,6 +1515,26 @@ std::shared_ptr<LOTData> LottieParserImpl::parsePolystarObject()
         parsingError = true;
         return sharedPolystar;
     }
+
+    // Match tlottie's max_polystar_points limit for authored values.
+    // https://github.com/dkaraush/tlottie/blob/92df98dc209bc39b1e567ec74a8c86a0af5239de/src/composition/limits.rs
+    const auto validPointCount = [](float points) {
+        return std::isfinite(points) && std::fabs(points) <= 128.0f;
+    };
+    const auto &points = obj->mPointCount;
+    const bool validPoints = points.isStatic()
+        ? validPointCount(points.value())
+        : std::all_of(points.animation().mKeyFrames.begin(),
+                      points.animation().mKeyFrames.end(),
+                      [&validPointCount](const LOTKeyFrame<float> &keyFrame) {
+                          return validPointCount(keyFrame.mValue.mStartValue) &&
+                                 validPointCount(keyFrame.mValue.mEndValue);
+                      });
+    if (!validPoints) {
+        parsingError = true;
+        return sharedPolystar;
+    }
+
     obj->setStatic(
         obj->mPos.isStatic() && obj->mPointCount.isStatic() &&
         obj->mInnerRadius.isStatic() && obj->mInnerRoundness.isStatic() &&

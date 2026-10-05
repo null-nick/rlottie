@@ -117,6 +117,9 @@ bool LottieLoader::loadFromData(std::string &&jsonData, const std::string &key,
     if (mModel) return true;
 
     LottieParser parser(const_cast<char *>(jsonData.c_str()), resourcePath.c_str(), colorReplacement, fitzModifier);
+    if (parser.hasParsingError()) {
+        return false;
+    }
     mModel = parser.model();
 
     if (!mModel) return false;

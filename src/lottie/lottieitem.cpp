@@ -1277,11 +1277,14 @@ void LOTPolystarItem::updatePath(VPath &path, int frameNo)
     float   rotation = mData->mRotation.value(frameNo);
 
     path.reset();
-    VMatrix m;
 
-    // Point count comes straight from JSON: negative, NaN or huge values
-    // overflow size_t in VPathData::reserve() and abort in -fno-exceptions.
-    if (!(points >= 1.0f && points <= 1000.0f)) return;
+    // Match tlottie's render-time clamp, including keyframe overshoot.
+    // https://github.com/dkaraush/tlottie/blob/92df98dc209bc39b1e567ec74a8c86a0af5239de/src/renderer/frame/geometry.rs
+    // Non-finite values must not reach VPath's float-to-size_t conversions.
+    if (!std::isfinite(points)) return;
+    points = std::max(2.0f, std::min(points, 256.0f));
+
+    VMatrix m;
 
     if (mData->mType == LOTPolystarData::PolyType::Star) {
         path.addPolystar(points, innerRadius, outerRadius, innerRoundness,
